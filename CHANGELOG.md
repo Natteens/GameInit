@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/Natteens/com.natteens.gameinit/compare/v1.4.2...v1.4.3) (2026-02-23)
+
+
+### Bug Fixes
+
+* Refactor project folder generator to template system ([ba39e9f](https://github.com/Natteens/com.natteens.gameinit/commit/ba39e9f21420a2e81e52db0714d3dd6c01df5a84))
+
 ## [1.4.2](https://github.com/Natteens/com.natteens.gameinit/compare/v1.4.1...v1.4.2) (2025-12-01)
 
 
