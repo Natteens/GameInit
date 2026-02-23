@@ -1,497 +1,521 @@
-# 🎮 GameInit
+# GameInit
 
-![Unity](https://img.shields.io/badge/Unity-2022.3+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Package](https://img.shields.io/badge/Package-v1.2.1-orange.svg)
+[![Unity](https://img.shields.io/badge/Unity-2022.3+-black.svg)](https://unity.com)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
+[![OpenUPM](https://img.shields.io/npm/v/com.natteens.gameinit?label=OpenUPM&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.natteens.gameinit/)
+[![GitHub Release](https://img.shields.io/github/v/release/Natteens/com.natteens.gameinit)](https://github.com/Natteens/com.natteens.gameinit/releases)
+
+A Unity package providing a production-ready foundation for new projects — event channels, timers, dependency injection, singleton utilities, animation events, hierarchy tools, and a broad set of extension methods.
 
 ---
 
-## 📥 Instalação
+## Table of Contents
 
-Este pacote pode ser instalado através do Unity Package Manager.
+- [Installation](#installation)
+- [Event System](#event-system)
+- [Timer System](#timer-system)
+- [Dependency Injection](#dependency-injection)
+- [Singleton Utilities](#singleton-utilities)
+- [Animation Events](#animation-events)
+- [Hierarchy Tools](#hierarchy-tools)
+- [Utilities & Extensions](#utilities--extensions)
+- [API Reference](#api-reference)
+
+---
+
+## Installation
+
+### Via OpenUPM (Recommended)
+
+```bash
+openupm add com.natteens.gameinit
+```
+
+Or add the scoped registry manually in `Packages/manifest.json`:
+
+```json
+{
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": ["com.natteens"]
+    }
+  ],
+  "dependencies": {
+    "com.natteens.gameinit": "1.4.2"
+  }
+}
+```
 
 ### Via Git URL
-1. Abra o Package Manager (`Window` → `Package Manager`)
-2. Clique no botão `+` e selecione `Add package from git URL...`
-3. Digite: `https://github.com/Natteens/com.natteens.gameinit.git`
 
-### Via Package Manager Local
-1. Clone o repositório localmente
-2. No Package Manager, clique no `+` e selecione `Add package from disk...`
-3. Selecione o arquivo `package.json` do projeto
+1. Open the Package Manager (`Window` → `Package Manager`)
+2. Click `+` → `Add package from git URL...`
+3. Enter: `https://github.com/Natteens/com.natteens.gameinit.git`
 
----
+### Via Local Disk
 
-## 📋 Índice
-
-- [🎯 Sistemas de Eventos](#-sistemas-de-eventos)
-- [⏱️ Sistema de Timers](#️-sistema-de-timers)
-- [🎬 Eventos de Animação](#-eventos-de-animação)
-- [🛠️ Utilitários](#️-utilitários)
-- [📁 Organização da Hierarquia](#-organização-da-hierarquia)
-- [🎮 Exemplos de Uso](#-exemplos-de-uso)
-- [📚 API Reference](#-api-reference)
+1. Clone the repository
+2. In the Package Manager, click `+` → `Add package from disk...`
+3. Select the `package.json` file
 
 ---
 
-## 🎯 Sistemas de Eventos
+## Event System
 
-O GameInit oferece um sistema robusto de eventos baseado em **Event Channels** que permite comunicação desacoplada entre diferentes partes do jogo, seguindo o padrão **Observer** e **Publisher-Subscriber**.
+A decoupled, ScriptableObject-based event system following the **Observer / Publisher-Subscriber** pattern. All channels are assets — zero MonoBehaviour coupling between producers and consumers.
 
-### 📡 Event Channels Disponíveis
+### Available Channels
 
-| Tipo | Descrição | Uso Comum |
-|------|-----------|-----------|
-| **VoidEventChannel** | Eventos sem parâmetros | Morte do jogador, fim de fase |
-| **BoolEventChannel** | Eventos booleanos | Estados on/off, ativação |
-| **IntEventChannel** | Números inteiros | Score, vida, quantidade |
-| **FloatEventChannel** | Números decimais | Velocidade, tempo, percentual |
-| **StringEventChannel** | Texto | Mensagens, IDs, nomes |
-| **Vector2EventChannel** | Vetores 2D | Posição 2D, direção |
-| **Vector3EventChannel** | Vetores 3D | Posição 3D, rotação |
-| **GameEventChannel** | Eventos customizados | Eventos complexos |
+| Type | Description |
+|------|-------------|
+| `VoidEventChannel` | Parameterless events |
+| `BoolEventChannel` | Boolean payloads |
+| `IntEventChannel` | Integer payloads |
+| `FloatEventChannel` | Float payloads |
+| `StringEventChannel` | String payloads |
+| `Vector2EventChannel` | Vector2 payloads |
+| `Vector3EventChannel` | Vector3 payloads |
+| `GameEventChannel` | Parameterless with name/description metadata |
 
-### 🚀 Como Usar Event Channels
+Create any channel via `Assets → Create → Scriptable Objects → GameInit → Events → ...`
 
-#### 1. **Criando um Event Channel**
-```
-📁 Project → Botão direito → Create → GameInit → Events → [Tipo do Event]
-```
+### Broadcasting Events
 
-#### 2. **Disparando Eventos**
 ```csharp
-// No script que dispara o evento
 [SerializeField] private VoidEventChannel onPlayerDied;
 [SerializeField] private IntEventChannel onScoreChanged;
 
 void PlayerDeath()
 {
-    onPlayerDied.RaiseEvent();
+    onPlayerDied.RaiseEvent(new VoidEvent());
 }
 
 void AddScore(int points)
 {
     onScoreChanged.RaiseEvent(points);
 }
+
+// GameEventChannel has a convenience overload
+[SerializeField] private GameEventChannel onGameStarted;
+onGameStarted.RaiseEvent(); // no struct required
 ```
 
-#### 3. **Escutando Eventos**
-```csharp
-// No script que recebe o evento
-[SerializeField] private VoidEventChannel onPlayerDied;
-[SerializeField] private IntEventChannel onScoreChanged;
+### Targeted Events
 
-void Start()
+Channels also support directing events to a specific entity by ID, avoiding broadcast overhead:
+
+```csharp
+// Send to one entity
+onDamageReceived.RaiseEvent(enemy.gameObject, 50);
+onDamageReceived.RaiseEvent(enemy.gameObject.GetInstanceID(), 50);
+
+// Subscribe as a specific entity
+onDamageReceived.Subscribe(gameObject.GetInstanceID(), HandleDamage);
+```
+
+### Subscribing and Unsubscribing
+
+```csharp
+void OnEnable()
 {
     onPlayerDied.Subscribe(HandlePlayerDeath);
     onScoreChanged.Subscribe(HandleScoreChange);
 }
 
-void HandlePlayerDeath()
-{
-    // Lógica quando o jogador morre
-    ShowGameOverScreen();
-}
+void HandlePlayerDeath(VoidEvent _) { }
+void HandleScoreChange(int newScore) { }
 
-void HandleScoreChange(int newScore)
+void OnDisable()
 {
-    // Atualiza UI do score
-    scoreText.text = $"Score: {newScore}";
-}
-
-void OnDestroy()
-{
-    // Importante: desinscrever para evitar vazamentos
-    onPlayerDied?.Unsubscribe(HandlePlayerDeath);
-    onScoreChanged?.Unsubscribe(HandleScoreChange);
+    onPlayerDied.Unsubscribe(HandlePlayerDeath);
+    onScoreChanged.Unsubscribe(HandleScoreChange);
 }
 ```
 
-### 🎧 Event Listeners
+### Replay Last Value
 
-Para uso visual no Editor, o sistema inclui **Event Listeners** prontos:
+When `replayLastValue` is enabled on a channel asset, new subscribers immediately receive the last raised value:
 
-| Listener | Funcionalidade |
-|----------|----------------|
-| **VoidEventListener** | UnityEvents para eventos vazios |
-| **BoolEventListener** | UnityEvents para eventos booleanos |
-| **IntEventListener** | UnityEvents para eventos inteiros |
-| **FloatEventListener** | UnityEvents para eventos decimais |
-| **StringEventListener** | UnityEvents para eventos de texto |
-| **Vector2EventListener** | UnityEvents para eventos Vector2 |
-| **Vector3EventListener** | UnityEvents para eventos Vector3 |
-| **GameEventListener** | UnityEvents para eventos customizados |
+```csharp
+// Subscriber added after the event fires still gets the value
+channel.Subscribe(OnValueChanged); // fires immediately if channel.HasValue
+```
 
-> 💡 **Dica**: Use Event Listeners quando quiser configurar respostas no Inspector sem código!
+### Inspector-Driven Listeners
+
+Add a listener component to any GameObject to wire events without code:
+
+```
+VoidEventListener, BoolEventListener, IntEventListener,
+FloatEventListener, StringEventListener,
+Vector2EventListener, Vector3EventListener, GameEventListener
+```
+
+Each exposes a `UnityEvent<T>` field in the Inspector.
 
 ---
 
-## ⏱️ Sistema de Timers
+## Timer System
 
-Sistema flexível de **timers** com diferentes tipos para diversas necessidades de gameplay.
+Timers are registered into the Unity Player Loop automatically via `TimerBootstrapper` — no `Update()` required on your MonoBehaviours.
 
-### 🕐 Tipos de Timer
+### Timer Types
 
-#### 1. **CountdownTimer** - Contagem Regressiva
+#### CountdownTimer
+
+Counts from an initial value down to zero.
+
 ```csharp
-// Timer simples de 10 segundos
 var countdown = new CountdownTimer(10f);
-countdown.OnTimerStop += () => Debug.Log("Tempo esgotado!");
+countdown.OnTimerStop += () => Debug.Log("Time's up!");
 countdown.Start();
 
-// Verificações úteis
-if (countdown.IsFinished)
-    ShowTimeUpMessage();
-
-// Reset para novo uso
+// Reset with same or new duration
 countdown.Reset();
-countdown.Reset(15f); // Reset com novo tempo
+countdown.Reset(15f);
+
+bool done = countdown.IsFinished; // true when CurrentTime <= 0
 ```
 
-#### 2. **StopwatchTimer** - Cronômetro
+#### StopwatchTimer
+
+Counts upward indefinitely. Useful for measuring elapsed time.
+
 ```csharp
-// Cronômetro para medir tempo
 var stopwatch = new StopwatchTimer();
 stopwatch.Start();
 
-// Após algum tempo...
-float timeElapsed = stopwatch.Time;
-Debug.Log($"Tempo decorrido: {timeElapsed:F2}s");
+float elapsed = stopwatch.CurrentTime;
 ```
 
-#### 3. **TickTimer** - Timer com Ticks
+#### FrequencyTimer
+
+Fires `OnTick` N times per second.
+
 ```csharp
-// Timer infinito - tick a cada 1 segundo
-var infiniteTimer = new TickTimer(1f);
-infiniteTimer.OnTick += () => Debug.Log("Tick!");
-infiniteTimer.Start();
+var timer = new FrequencyTimer(ticksPerSecond: 10);
+timer.OnTick += () => Debug.Log("Tick");
+timer.Start();
 
-// Timer com limite - 5 ticks de 2 segundos cada
-var limitedTimer = new TickTimer(2f, 5);
-limitedTimer.OnTick += () => Debug.Log($"Tick {limitedTimer.TickCount}/{limitedTimer.MaxTicks}");
-limitedTimer.OnAllTicksCompleted += () => Debug.Log("Todos os ticks completados!");
-limitedTimer.Start();
-
-// Informações úteis
-float timeUntilNext = limitedTimer.GetTimeUntilNextTick();
-int remaining = limitedTimer.RemainingTicks;
-float progress = limitedTimer.Progress; // 0-1 para timers com limite
+// Change frequency without recreating
+timer.Reset(newTicksPerSecond: 5);
 ```
 
-### 🎛️ Funcionalidades dos Timers
+#### IntervalTimer
 
-| Funcionalidade | Descrição |
-|---------------|-----------|
-| **Eventos** | `OnTimerStart`, `OnTimerStop`, `OnTick`, `OnAllTicksCompleted` |
-| **Controle** | `Start()`, `Stop()`, `Pause()`, `Resume()` |
-| **Estado** | `IsRunning`, `IsFinished`, `IsCompleted` |
-| **Progresso** | `Progress` (0-1), `Time`, `RemainingTicks` |
-| **Reset** | `Reset()`, `Reset(newTime)` // CountdownTimer apenas |
+A countdown timer that fires `OnInterval` at regular sub-intervals before completing.
 
-### 💡 Exemplo Prático - Sistema de Power-Up
 ```csharp
-public class PowerUpManager : MonoBehaviour
+// Fires every 2 seconds over 10 seconds (5 total intervals)
+var timer = new IntervalTimer(totalTime: 10f, intervalSeconds: 2f);
+timer.OnInterval += () => Debug.Log("Interval fired");
+timer.OnTimerStop += () => Debug.Log("Complete");
+timer.Start();
+```
+
+### Common API (All Timers)
+
+```csharp
+timer.Start();
+timer.Stop();
+timer.Pause();
+timer.Resume();
+timer.Reset();
+
+bool running  = timer.IsRunning;
+bool finished = timer.IsFinished;
+float time    = timer.CurrentTime;
+float progress = timer.Progress; // 0–1, clamped (based on initial duration)
+```
+
+Timers implement `IDisposable`. Call `timer.Dispose()` or use `using` when done.
+
+---
+
+## Dependency Injection
+
+A lightweight reflection-based DI system for Unity. An `Injector` component scans the scene on `Awake` (execution order `-1000`), collects all `IDependencyProvider` MonoBehaviours, and injects into all `[Inject]`-marked fields, properties, and methods.
+
+### Setup
+
+```csharp
+// 1. Provider — exposes dependencies
+public class ServiceProvider : MonoBehaviour, IDependencyProvider
 {
-    private CountdownTimer powerUpTimer;
-    private TickTimer damageOverTimeTimer;
-    
-    void Start()
+    [Provide]
+    public AudioService ProvideAudio() => new AudioService();
+}
+
+// 2. Consumer — declares dependencies
+public class Player : MonoBehaviour
+{
+    [Inject] private AudioService audio;
+
+    [Inject]
+    public void Init(AudioService audio)
     {
-        // Power-up dura 30 segundos
-        powerUpTimer = new CountdownTimer(30f);
-        powerUpTimer.OnTimerStop += DeactivatePowerUp;
-        
-        // Dano a cada 0.5 segundos durante o power-up
-        damageOverTimeTimer = new TickTimer(0.5f);
-        damageOverTimeTimer.OnTick += DealDamage;
-    }
-    
-    public void ActivatePowerUp()
-    {
-        powerUpTimer.Start();
-        damageOverTimeTimer.Start();
-    }
-    
-    void DeactivatePowerUp()
-    {
-        damageOverTimeTimer.Stop();
-        // Lógica de desativação
-    }
-    
-    void Update()
-    {
-        powerUpTimer?.Tick(Time.deltaTime);
-        damageOverTimeTimer?.Tick(Time.deltaTime);
+        this.audio = audio;
     }
 }
 ```
 
----
+Add an `Injector` GameObject to your scene. All providers and injectables in the scene are resolved automatically.
 
-## 🎬 Eventos de Animação
+### Editor Tools
 
-Sistema para integrar **eventos customizados** em animações do Unity de forma visual e programática.
+The `Injector` Inspector exposes:
+- **Validate Dependencies** — logs any unresolved `[Inject]` fields
+- **Clear All Injectable Fields** — nulls all injected values (useful for testing)
 
-### 🧩 Componentes
-
-| Componente | Função |
-|------------|--------|
-| **AnimationEvent** | Estrutura para eventos de animação |
-| **AnimationEventReceiver** | Recebe e processa eventos |
-| **AnimationEventStateBehaviour** | StateMachineBehaviour para Animator |
-
-### 🎯 Como Usar
-
-#### 1. **Configurando o Receiver**
-```csharp
-public class PlayerController : MonoBehaviour
-{
-    private AnimationEventReceiver animReceiver;
-    
-    void Start()
-    {
-        animReceiver = GetComponent<AnimationEventReceiver>();
-        
-        // Adicionar eventos via código
-        animReceiver.AddEvent("Jump", OnJumpEvent);
-        animReceiver.AddEvent("Land", OnLandEvent);
-        animReceiver.AddEvent("Attack", OnAttackEvent);
-    }
-    
-    void OnJumpEvent()
-    {
-        Debug.Log("Player jumped!");
-        // Spawnar partículas, tocar som, etc.
-    }
-    
-    void OnLandEvent()
-    {
-        Debug.Log("Player landed!");
-        // Shake camera, spawnar dust, etc.
-    }
-    
-    void OnAttackEvent()
-    {
-        Debug.Log("Attack hit!");
-        // Detectar colisões, aplicar dano, etc.
-    }
-}
-```
-
-#### 2. **Configurando na Animação**
-```
-1. Abra a Animation Window
-2. Selecione o frame onde quer o evento
-3. Clique em "Add Event"
-4. Function: OnAnimationEventTriggered
-5. String Parameter: "Jump" (nome do evento)
-```
-
-#### 3. **Configuração Visual no Inspector**
-O `AnimationEventReceiver` também permite configurar eventos diretamente no Inspector usando UnityEvents, sem código!
+A `GameObject → Dependency Injection → Create Injector` menu item creates a pre-configured Injector GameObject.
 
 ---
 
-## 🛠️ Utilitários
+## Singleton Utilities
 
-### 🏗️ Singleton Pattern
+Three variants covering different persistence and deduplication strategies.
 
-Implementação **thread-safe** e **otimizada** do padrão Singleton para MonoBehaviours:
+### `Singleton<T>`
+
+Basic singleton. Destroys duplicate instances. Survives scene loads if not parented.
 
 ```csharp
 public class GameManager : Singleton<GameManager>
 {
-    [Header("Game Settings")]
-    public float gameSpeed = 1f;
-    public int maxLives = 3;
-    
     protected override void Awake()
     {
-        base.Awake(); // Sempre chamar primeiro!
-        
-        // Sua lógica de inicialização
-        InitializeGame();
-    }
-    
-    public void PauseGame()
-    {
-        Time.timeScale = 0f;
-    }
-    
-    public void ResumeGame()
-    {
-        Time.timeScale = gameSpeed;
+        base.Awake();
+        // initialization
     }
 }
 
-// Uso em qualquer lugar do código
-public class PlayerController : MonoBehaviour
-{
-    void Die()
-    {
-        GameManager.Instance.PauseGame();
-        // Lógica de morte
-    }
-}
+GameManager.Instance.DoSomething();
 ```
 
-### ✨ Características do Singleton
+### `PersistentSingleton<T>`
 
-- **🛡️ DontDestroyOnLoad**: Persiste entre cenas automaticamente
-- **🔒 Thread-Safe**: Implementação segura para threads
-- **🗑️ Auto-Cleanup**: Remove instâncias duplicadas automaticamente
-- **⚡ Performance**: Acesso direto via propriedade estática
-
----
-
-## 📁 Organização da Hierarquia
-
-### 🎨 HierarchyHeader
-
-Componente para criar **cabeçalhos visuais** e organizar melhor a hierarquia do Unity:
+Calls `DontDestroyOnLoad` on the first instance. Destroys any later instance. Optionally unparents itself on Awake (`AutoUnparentOnAwake = true` by default).
 
 ```csharp
-// Adicione HierarchyHeader a um GameObject vazio
-// Configure no Inspector:
-// - Header Text: "=== MANAGERS ==="
-// - Text Color: Cyan
-// - Background Color: Dark Blue
-// - Font Style: Bold
+public class AudioManager : PersistentSingleton<AudioManager> { }
 ```
 
-**🎨 Funcionalidades**:
-- ✏️ Texto customizável
-- 🎨 Cores personalizadas (texto e fundo)
-- 📝 Estilos de fonte diferentes
-- 📏 Separadores visuais
-- 🔤 Ícones e emojis suportados
+### `RegulatorSingleton<T>`
 
-**💡 Exemplo de Organização**:
-```
-🎮 === GAME MANAGERS ===
-    GameManager
-    AudioManager
-    UIManager
+Persistent singleton that, when a duplicate exists, destroys the **older** instance (by `InitializationTime`) instead of the newer one. Useful for scene-reload scenarios where you want the freshest instance to win.
 
-⚔️ === COMBAT SYSTEM ===
-    EnemySpawner
-    WeaponManager
-    HealthSystem
-
-🌍 === ENVIRONMENT ===
-    LevelManager
-    Weather
-    Lighting
+```csharp
+public class NetworkManager : RegulatorSingleton<NetworkManager> { }
 ```
 
 ---
 
-## 🎮 Exemplos de Uso
+## Animation Events
 
-O pacote inclui samples completos demonstrando diferentes casos de uso:
+A StateMachineBehaviour-based system that decouples animation event triggers from game logic.
 
-### 🎯 2D Sample
-- **📱 Sistema de eventos para UI** responsiva
-- **⏰ Timers para power-ups** temporários
-- **🎨 Organização de hierarquia** exemplar
+### Components
 
-### 🌟 3D Sample  
-- **🎯 Sistema de eventos 3D** para interações
-- **⚡ Timers para mecânicas** de gameplay
-- **🎬 Eventos de animação** integrados
+| Component | Role |
+|-----------|------|
+| `AnimationEventStateBehaviour` | State Machine Behaviour — fires an event at a normalized time |
+| `AnimationEventReceiver` | MonoBehaviour — receives named events and invokes callbacks |
+| `AnimationEvent` | Serializable pair of `eventName` + `UnityEvent` |
 
-### 🛠️ Utilities Sample
-- **📦 Prefabs pré-configurados** prontos para uso
-- **📡 Event Channels** de exemplo
-- **📚 Templates de código** documentados
-- **🧪 Ferramentas de teste** e debug
+### Setup
+
+```csharp
+// Register handlers at runtime
+var receiver = GetComponent<AnimationEventReceiver>();
+receiver.AddEvent("Attack", OnAttackHit);
+receiver.AddEvent("Land", OnLand);
+
+void OnAttackHit() { /* detect hits, apply damage */ }
+void OnLand()      { /* play dust VFX, camera shake */ }
+```
+
+Add `AnimationEventStateBehaviour` to the desired Animator state. Set `eventName` to match and `triggerTime` (0–1 normalized) to control when it fires.
+
+Events can also be configured entirely in the Inspector via the `AnimationEventReceiver` list, with no code required.
+
+### Editor Preview
+
+The `AnimationEventStateBehaviour` Inspector includes a **Preview** button. With a GameObject selected, it scrubs the animation to the configured `triggerTime`, supporting both `AnimationClip` and `BlendTree` states.
 
 ---
 
-## 📚 API Reference
+## Hierarchy Tools
 
-### 📦 Namespaces Principais
+### HierarchyHeader
+
+Visual section dividers inside the Unity Hierarchy window.
+
+Add the `HierarchyHeader` component to an empty GameObject. Configure in the Inspector:
+
+- Text color and font style
+- Solid background color or gradient
+- Text alignment
+
+Create one via `GameObject → Hierarchy → Create Custom Header`.
+
+### Required Field Indicator
+
+Mark serialized fields with `[RequiredField]`:
 
 ```csharp
-using GameInit.AnimationEvents;     // Eventos de animação
-using GameInit.GameEvents.Channels; // Canais de eventos
-using GameInit.GameEvents.EventListeners; // Listeners
-using GameInit.Timers;              // Sistema de timers
-using GameInit.Utils;               // Utilitários gerais
+[RequiredField] public Rigidbody rb;
+[RequiredField] public AudioClip deathSound;
 ```
 
-### 🔧 Métodos Principais
+An error icon appears next to the field in the Inspector and next to the GameObject in the Hierarchy when the field is unassigned. The icon updates immediately on change.
 
-#### 📡 Event Channels
+### Component Icons
+
+`HierarchyIconDisplay` automatically draws the primary component icon next to each GameObject name in the Hierarchy, making it easier to identify object roles at a glance. Prefab instances are excluded.
+
+---
+
+## Utilities & Extensions
+
+### `WaitFor` — Cached Coroutine Yields
+
+Eliminates per-frame `WaitForSeconds` allocations:
+
 ```csharp
-// Disparar eventos
+yield return WaitFor.Seconds(0.5f);
+yield return WaitFor.FixedUpdate;
+yield return WaitFor.EndOfFrame;
+```
+
+### `VectorMath`
+
+Static helpers for common 3D math operations:
+
+```csharp
+float angle   = VectorMath.GetAngle(v1, v2, planeNormal);
+float dot     = VectorMath.GetDotProduct(vector, direction);
+Vector3 flat  = VectorMath.RemoveDotVector(velocity, Vector3.up);
+Vector3 proj  = VectorMath.ProjectPointOntoLine(origin, dir, point);
+```
+
+### Extension Methods
+
+**`TransformExtensions`** — `Reset()`, `Children()`, `DestroyChildren()`, `EnableChildren()`, `DisableChildren()`, `ForEveryChild()`, `InRangeOf()`
+
+**`GameObjectExtensions`** — `GetOrAdd<T>()`, `OrNull<T>()`, `DestroyChildren()`, `SetLayersRecursively()`, `SetActive<T>()`, `SetInactive<T>()`, `Path()`, `PathFull()`
+
+**`Vector3Extensions`** — `With()`, `Add()`, `InRangeOf()`, `ComponentDivide()`, `ToVector3()`, `RandomOffset()`, `RandomPointInAnnulus()`, `Quantize()`
+
+**`Vector2Extensions`** — `With()`, `Add()`, `InRangeOf()`, `RandomPointInAnnulus()`
+
+**`ListExtensions`** — `IsNullOrEmpty()`, `Clone()`, `Swap()`, `Shuffle()`, `Filter()`
+
+**`EnumerableExtensions`** — `ForEach()`, `Random()`
+
+**`StringExtensions`** — `IsNullOrWhiteSpace()`, `IsNullOrEmpty()`, `IsBlank()`, `OrEmpty()`, `Shorten()`, `Slice()`, `ConvertToAlphanumeric()`, Rich text helpers (`RichColor()`, `RichBold()`, etc.)
+
+**`ColorExtensions`** — `SetAlpha()`, `Add()`, `Subtract()`, `ToHex()`, `FromHex()`, `Blend()`, `Invert()`
+
+**`RigidbodyExtensions`** — `ChangeDirection()`, `Stop()` (Unity 6 compatible)
+
+**`NumberExtensions`** — `AtLeast()`, `AtMost()`, `IsOdd()`, `IsEven()`, `Approx()`, `PercentageOf()`
+
+**`AsyncOperationExtensions`** / **`TaskExtensions`** — `AsTask()`, `AsCoroutine()`, `AsCompletedTask<T>()`, `Forget()`
+
+**`VisualElementExtensions`** / **`UQueryBuilderExtensions`** — UI Toolkit helpers for creating, styling, and querying elements
+
+**`ReflectionExtensions`** — Type casting, display names, delegate checks, method rebasing
+
+---
+
+## API Reference
+
+### EventChannel\<T\>
+
+```csharp
+// Broadcast
 void RaiseEvent(T value)
-void RaiseEvent() // Para VoidEventChannel
-
-// Inscrições
 void Subscribe(Action<T> callback)
 void Unsubscribe(Action<T> callback)
-void UnsubscribeAll()
 
-// Estado
-T CurrentValue { get; }
+// Targeted (by entity ID)
+void RaiseEvent(int targetId, T value)
+void RaiseEvent(GameObject target, T value)
+void RaiseEvent(Component target, T value)
+void Subscribe(int entityId, Action<T> callback)
+void Unsubscribe(int entityId, Action<T> callback)
+
+// State
+T LastValue { get; }
 bool HasValue { get; }
-int SubscriberCount { get; }
+
+// Cleanup
+void ResetValue()
+bool TryGetValue(int entityId, out T value)
 ```
 
-#### ⏱️ Timers
+### Timer (base)
+
 ```csharp
-// Controle
 void Start()
 void Stop()
 void Pause()
 void Resume()
 void Reset()
-void Reset(float newTime) // CountdownTimer apenas
+void Reset(float newTime)  // not available on FrequencyTimer
 
-// Estado
-bool IsRunning { get; }
-bool IsFinished { get; }
-bool IsCompleted { get; } // TickTimer apenas
-float Progress { get; }
-float Time { get; }
+float CurrentTime { get; }
+float Progress    { get; }  // 0–1
+bool  IsRunning   { get; }
+bool  IsFinished  { get; }
 
-// TickTimer específico
-int TickCount { get; }
-int MaxTicks { get; }
-int RemainingTicks { get; }
-float GetTickInterval()
-float GetTimeUntilNextTick()
+Action OnTimerStart
+Action OnTimerStop
+```
+
+### FrequencyTimer (additional)
+
+```csharp
+int TicksPerSecond { get; }
+Action OnTick
+void Reset(int newTicksPerSecond)
+```
+
+### IntervalTimer (additional)
+
+```csharp
+Action OnInterval
 ```
 
 ---
 
-### 🐛 Reportar Bugs
-Encontrou um bug? Abra uma **issue** no GitHub com:
-- 📝 Descrição detalhada
-- 🔄 Passos para reproduzir
-- 🖥️ Versão do Unity
-- 📱 Plataforma de teste
+## Namespaces
+
+```csharp
+using GameInit.AnimationEvents;
+using GameInit.DependencyInjection;
+using GameInit.GameEvents.Channels;
+using GameInit.GameEvents.EventListeners;
+using GameInit.GameEvents;
+using GameInit.Hierarchy;
+using GameInit.Timers;
+using GameInit.Utils;
+using GameInit.Utils.Extensions;
+```
 
 ---
 
-## 📄 Licença
+## Contributing
 
-Este projeto está licenciado sob a **MIT License** - consulte o arquivo [LICENSE.md](LICENSE.md) para detalhes.
+Bug reports and pull requests are welcome on [GitHub](https://github.com/Natteens/com.natteens.gameinit).
+
+- Open an issue with a clear description and reproduction steps
+- Include your Unity version and target platform
 
 ---
 
-## 📞 Suporte & Contato
+## License
 
-### 🆘 Precisa de Ajuda?
-- 📧 **Email**: [natteens.social@gmail.com](mailto:natteens.social@gmail.com)
-- 🐙 **GitHub**: [https://github.com/Natteens/com.natteens.gameinit](https://github.com/Natteens/com.natteens.gameinit)
-- 📖 **Documentação**: [GitHub Wiki](https://github.com/Natteens/com.natteens.gameinit/wiki)
-- 💬 **Discussões**: [GitHub Discussions](https://github.com/Natteens/com.natteens.gameinit/discussions)
-
-<p align="center">
-
-<strong>Feito com ❤️ por <a href="https://github.com/Natteens">Nathan da Silva Miranda</a></strong><br>
-<em>GameInit - Acelere o desenvolvimento dos seus jogos Unity!</em> 🚀
-
-</p>
+MIT — see [LICENSE.md](LICENSE.md).
