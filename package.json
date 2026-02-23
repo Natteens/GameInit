@@ -13,23 +13,6 @@
     "email": "natteens.social@gmail.com",
     "url": "https://github.com/Natteens"
   },
-  "samples": [
-    {
-      "displayName": "2D Sample",
-      "description": "Exemplo demonstrando o uso do GameInit em um jogo 2D.",
-      "path": "Samples~/2D Sample"
-    },
-    {
-      "displayName": "3D Sample",
-      "description": "Exemplo demonstrando o uso do GameInit em um jogo 3D.",
-      "path": "Samples~/3D Sample"
-    },
-    {
-      "displayName": "Utilities Sample",
-      "description": "Utilitários e prefabs de exemplo para testes e desenvolvimento.",
-      "path": "Samples~/Utilities Sample"
-    }
-  ],
   "documentationUrl": "https://github.com/Natteens/GameInit",
   "changelogUrl": "https://github.com/Natteens/GameInit/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/Natteens/GameInit/blob/main/LICENSE.md"
