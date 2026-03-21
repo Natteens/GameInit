@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/Natteens/com.natteens.gameinit/compare/v1.4.3...v1.4.4) (2026-03-21)
+
+
+### Bug Fixes
+
+* Update hierarchy API usage; add toolbar tools ([793bac9](https://github.com/Natteens/com.natteens.gameinit/commit/793bac910642318108381693a559ed3e87e0c93c))
+
 ## [1.4.3](https://github.com/Natteens/com.natteens.gameinit/compare/v1.4.2...v1.4.3) (2026-02-23)
 
 
