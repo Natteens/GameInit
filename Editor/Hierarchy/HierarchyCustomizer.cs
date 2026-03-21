@@ -21,7 +21,7 @@ namespace GameInit.Editor.Hierarchy
         /// </summary>
         private static void OnHierarchyItemGUI(int instanceID, Rect rect)
         {
-            var gameObject = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
+            var gameObject = EditorUtility.EntityIdToObject(instanceID) as GameObject;
             
             if (!IsValidGameObject(gameObject)) return;
             

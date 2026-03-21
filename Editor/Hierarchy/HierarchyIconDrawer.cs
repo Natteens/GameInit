@@ -18,7 +18,7 @@ namespace GameInit.Editor. Hierarchy
         }
 
         static void OnHierarchyWindowItemOnGUI(int instanceID, Rect selectionRect) {
-            if (EditorUtility. InstanceIDToObject(instanceID) is not GameObject gameObject) return;
+            if (EditorUtility.EntityIdToObject(instanceID) is not GameObject gameObject) return;
 
             foreach (var component in gameObject.GetComponents<Component>()) {
                 if (component == null) continue;

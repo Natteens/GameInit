@@ -39,7 +39,7 @@ namespace GameInit.Editor.Hierarchy
         
         private static void OnHierarchyItemGUI(int instanceID, Rect selectionRect)
         {
-            GameObject gameObject = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
+            GameObject gameObject = EditorUtility.EntityIdToObject(instanceID) as GameObject;
             if (gameObject == null || PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject) != null)
                 return;
             
@@ -99,7 +99,7 @@ namespace GameInit.Editor.Hierarchy
         
         private static void DrawIcon(int instanceID, Rect selectionRect, GUIContent iconContent)
         {
-            bool isSelected = Selection.instanceIDs.Contains(instanceID);
+            bool isSelected = Selection.entityIds.Contains(instanceID);
             bool isHovered = selectionRect.Contains(Event.current.mousePosition);
             
             Color backgroundColor = GetBackgroundColor(isSelected, isHovered);
