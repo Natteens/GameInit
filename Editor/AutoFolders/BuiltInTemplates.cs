@@ -75,8 +75,8 @@ namespace GameInit.Editor.AutoFolders
             var scripts = root.AddChild("Scripts");
             AddModule(scripts, "Core",     AsmdefPlatform.Any);
             AddModule(scripts, "Systems",  AsmdefPlatform.Any,         refs: new[] { "Core" });
-            AddModule(scripts, "Gameplay", AsmdefPlatform.RuntimeOnly, refs: new[] { "Core", "Systems" });
-            AddModule(scripts, "UI",       AsmdefPlatform.RuntimeOnly, refs: new[] { "Core" });
+            AddModule(scripts, "Gameplay", AsmdefPlatform.Any, refs: new[] { "Core", "Systems" });
+            AddModule(scripts, "UI",       AsmdefPlatform.Any, refs: new[] { "Core" });
             AddModule(scripts, "Utils",    AsmdefPlatform.Any);
             AddModule(scripts, "Editor",   AsmdefPlatform.EditorOnly,  autoRef: false, refs: new[] { "Core" });
 

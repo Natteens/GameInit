@@ -37,13 +37,13 @@ namespace GameInit.Editor.AutoFolders
             Children.Remove(child);
         }
 
-        /// <summary>Deep clone preserving hierarchy. Parent refs are re-wired.</summary>
+        /// <summary>Deep clone preserving hierarchy. Parent refs are re-wired. UI state is reset.</summary>
         public FolderNode DeepClone(FolderNode newParent = null)
         {
             var clone = new FolderNode(Name, newParent)
             {
                 GenerateAsmdef = GenerateAsmdef,
-                IsExpanded     = IsExpanded,
+                IsExpanded     = true,   // always reset UI state on clone
                 Asmdef         = Asmdef.Clone()
             };
             foreach (var c in Children)
@@ -63,10 +63,15 @@ namespace GameInit.Editor.AutoFolders
     [Serializable]
     public class AsmdefConfig
     {
+        // Stored as suffix only (e.g. "Core"), never the full qualified name.
+        // FolderGenerator.BuildFullName() applies the prefix at write time.
         public string          AssemblyName    = "";
         public AsmdefPlatform  Platform        = AsmdefPlatform.Any;
         public bool            AutoReferenced  = true;
         public bool            AllowUnsafeCode = false;
+
+        // Stored as suffixes only (e.g. "Core", "Systems").
+        // FolderGenerator resolves them to full names at write time.
         public List<string>    References      = new List<string>();
 
         public AsmdefConfig Clone() => new AsmdefConfig
@@ -87,7 +92,7 @@ namespace GameInit.Editor.AutoFolders
         public string       Name;
         public string       Description;
         public bool         IsBuiltIn;
-        public FolderNode   Root;       // Virtual root — children are top-level Assets/ folders
+        public FolderNode   Root;
 
         public FolderTemplate() { }
         public FolderTemplate(string name, string description, bool builtIn = false)

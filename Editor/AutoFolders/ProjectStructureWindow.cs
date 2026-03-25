@@ -16,11 +16,13 @@ namespace GameInit.Editor.AutoFolders
         const float k_RowH     = 22f;
         const float k_Indent   = 14f;
 
+        const string k_PrefixKey = "GameInit_AsmPrefix";
+
         // ── Data ─────────────────────────────────────────────────────────
         List<FolderTemplate> _builtIn;
         List<FolderTemplate> _custom;
-        int  _selIdx      = 0;
-        bool _selCustom   = false;
+        int  _selIdx    = 0;
+        bool _selCustom = false;
 
         FolderNode _root;
         FolderNode _selected;
@@ -30,7 +32,6 @@ namespace GameInit.Editor.AutoFolders
         Vector2 _sideScroll;
         Vector2 _asmScroll;
 
-        // Assembly prefix — replaces the old "project prefix"
         string _asmPrefix  = "Game";
         bool   _confirmGen = false;
         string _statusMsg  = "";
@@ -38,13 +39,13 @@ namespace GameInit.Editor.AutoFolders
         FolderNode _renamingNode;
 
         // ── Styles ───────────────────────────────────────────────────────
-        GUIStyle _sLabel;    // small dim label
-        GUIStyle _sSection;  // section header (caps, tiny)
-        GUIStyle _sTitle;    // window title
-        GUIStyle _sRow;      // normal tree row
-        GUIStyle _sRowBold;  // selected tree row
-        GUIStyle _sBadge;    // asmdef badge text
-        GUIStyle _sCode;     // monospace preview
+        GUIStyle _sLabel;
+        GUIStyle _sSection;
+        GUIStyle _sTitle;
+        GUIStyle _sRow;
+        GUIStyle _sRowBold;
+        GUIStyle _sBadge;
+        GUIStyle _sCode;
         bool     _stylesOk;
 
         // ── Colours ──────────────────────────────────────────────────────
@@ -58,7 +59,6 @@ namespace GameInit.Editor.AutoFolders
         Color Txt    => Pro ? RGB(0.85f,0.85f,0.85f) : RGB(0.08f,0.08f,0.08f);
         Color TxtDim => Pro ? RGB(0.50f,0.50f,0.50f) : RGB(0.38f,0.38f,0.38f);
         Color Hover  => Pro ? RGB(0.24f,0.24f,0.24f) : RGB(0.86f,0.86f,0.86f);
-        // Badge: subtle, doesn't fight the row buttons
         Color BadgeBg  => Pro ? RGB(0.22f,0.36f,0.62f) : RGB(0.60f,0.74f,1.00f);
         Color BadgeTxt => Color.white;
 
@@ -76,10 +76,14 @@ namespace GameInit.Editor.AutoFolders
         // ── Lifecycle ────────────────────────────────────────────────────
         void OnEnable()
         {
+            // Persist prefix across recompiles and sessions
+            _asmPrefix = EditorPrefs.GetString(k_PrefixKey, "Game");
+
             _builtIn = BuiltInTemplates.GetAll();
             _custom  = TemplateStorage.LoadCustomTemplates();
             ApplyTemplate(0, false);
         }
+
         void OnDisable() => TemplateStorage.SaveCustomTemplates(_custom);
 
         // ── Root GUI ─────────────────────────────────────────────────────
@@ -95,7 +99,6 @@ namespace GameInit.Editor.AutoFolders
             DrawBody  (new Rect(0, bodyY, W, bodyH));
             DrawFooter(new Rect(0, H - k_FooterH, W, k_FooterH));
 
-            // Click-outside cancel rename
             if (_renamingNode != null &&
                 Event.current.type == EventType.MouseDown &&
                 !string.IsNullOrEmpty(GUI.GetNameOfFocusedControl()) == false)
@@ -114,22 +117,25 @@ namespace GameInit.Editor.AutoFolders
             GUI.Label(new Rect(r.x + 12, r.y + 8,  220, 20), "Project Structure", _sTitle);
             GUI.Label(new Rect(r.x + 12, r.y + 28, 280, 13), "GameInit  ·  Folder & Assembly scaffolding", _sLabel);
 
-            // Assembly prefix — right side of header
             float fx = r.xMax - 174;
             GUI.Label(new Rect(fx - 96, r.y + 18, 92, 14), "Assembly prefix", _sLabel);
-            string prev = _asmPrefix;
-            _asmPrefix = GUI.TextField(new Rect(fx, r.y + 14, 168, 22), _asmPrefix);
-            if (_asmPrefix != prev) Repaint(); // refresh badge previews
+
+            EditorGUI.BeginChangeCheck();
+            string newPrefix = GUI.TextField(new Rect(fx, r.y + 14, 168, 22), _asmPrefix);
+            if (EditorGUI.EndChangeCheck())
+            {
+                _asmPrefix = newPrefix;
+                EditorPrefs.SetString(k_PrefixKey, _asmPrefix);
+                Repaint();
+            }
         }
 
         // ── Body ─────────────────────────────────────────────────────────
         void DrawBody(Rect r)
         {
-            // Left sidebar
             DrawSidebar(new Rect(r.x, r.y, k_SideW, r.height));
             EditorGUI.DrawRect(new Rect(r.x + k_SideW, r.y, 1, r.height), Sep);
 
-            // Asmdef panel (right side, optional)
             float asmW = _asmOpen ? k_AsmW : 0f;
             if (_asmOpen)
             {
@@ -137,7 +143,6 @@ namespace GameInit.Editor.AutoFolders
                 DrawAsmPanel(new Rect(r.xMax - asmW, r.y, asmW, r.height));
             }
 
-            // Tree
             float tx = r.x + k_SideW + 1;
             float tw = r.width - k_SideW - 1 - asmW;
             DrawTree(new Rect(tx, r.y, tw, r.height));
@@ -148,11 +153,9 @@ namespace GameInit.Editor.AutoFolders
         {
             EditorGUI.DrawRect(r, Bg0);
 
-            // Section header
             float y = r.y;
             y = SideSection("TEMPLATES", r.x, y, r.width);
 
-            // Scroll area for template list
             float saveH   = 34f;
             float listH   = r.height - (y - r.y) - saveH - 1;
             var   listR   = new Rect(r.x, y, r.width, listH);
@@ -174,7 +177,6 @@ namespace GameInit.Editor.AutoFolders
             }
             GUI.EndScrollView();
 
-            // Save button
             EditorGUI.DrawRect(new Rect(r.x, r.yMax - saveH, r.width, 1), Sep);
             if (GUI.Button(new Rect(r.x + 8, r.yMax - saveH + 6, r.width - 16, 22), "Save as Custom Template"))
                 SaveCustomTemplate();
@@ -200,7 +202,6 @@ namespace GameInit.Editor.AutoFolders
             else if (rowR.Contains(Event.current.mousePosition))
                 EditorGUI.DrawRect(rowR, Hover);
 
-            // icon
             string ico = custom ? "d_Favorite" : "d_Folder Icon";
             GUI.Label(new Rect(10, sy + 9, 16, 16), EditorGUIUtility.IconContent(ico), GUIStyle.none);
             GUI.Label(new Rect(30, sy + 10, w - 52, 16), tpl.Name, active ? _sRowBold : _sRow);
@@ -231,11 +232,9 @@ namespace GameInit.Editor.AutoFolders
         {
             EditorGUI.DrawRect(r, Bg1);
 
-            // Toolbar
             var tb = new Rect(r.x, r.y, r.width, k_ToolbarH);
             DrawToolbar(tb);
 
-            // Scroll
             var vp      = new Rect(r.x, r.y + k_ToolbarH, r.width, r.height - k_ToolbarH);
             int rows    = CountRows(_root);
             var content = new Rect(0, 0, r.width - 16, Mathf.Max(rows * k_RowH + 8, vp.height));
@@ -263,8 +262,7 @@ namespace GameInit.Editor.AutoFolders
                 new GUIContent("  Reset", EditorGUIUtility.IconContent("d_Refresh").image)))
             { ApplyTemplate(_selIdx, _selCustom); GUI.FocusControl(null); }
 
-            // Assemblies toggle — plain style, arrow flips
-            string asmLabel = _asmOpen ? "◀  Assemblies" : "Assemblies  ▶";
+            string asmLabel = _asmOpen ? "< Assemblies" : "Assemblies >";
             if (GUI.Button(new Rect(r.xMax - 120, r.y + 4, 112, 20), asmLabel))
                 _asmOpen = !_asmOpen;
         }
@@ -286,16 +284,14 @@ namespace GameInit.Editor.AutoFolders
 
             float cx = 6 + depth * k_Indent;
 
-            // Fold arrow
             if (node.Children.Count > 0)
             {
                 if (GUI.Button(new Rect(cx, y + 5, 12, 12),
-                    node.IsExpanded ? "▾" : "▸", _sLabel))
+                    node.IsExpanded ? "v" : ">", _sLabel))
                     node.IsExpanded = !node.IsExpanded;
             }
             cx += 14;
 
-            // Folder icon
             string iconKey = node.Children.Count > 0
                 ? (node.IsExpanded ? "d_FolderOpened Icon" : "d_Folder Icon")
                 : "d_Folder Icon";
@@ -303,12 +299,9 @@ namespace GameInit.Editor.AutoFolders
                 EditorGUIUtility.IconContent(iconKey), GUIStyle.none);
             cx += 18;
 
-            // Fixed space for buttons on the right — compute right-edge first
-            // Buttons: rename(14) + gap(4) + addchild(14) + gap(4) + delete(14) = 50px, plus 8px margin
             const float k_BtnZoneW = 58f;
             float nameW = totalW - cx - k_BtnZoneW;
 
-            // Name / rename field
             var nameR = new Rect(cx, y + 3, nameW, 16);
             if (node.IsRenaming)
             {
@@ -322,7 +315,6 @@ namespace GameInit.Editor.AutoFolders
                     else if (Event.current.keyCode == KeyCode.Escape)
                     { CancelRename(node); Event.current.Use(); Repaint(); }
                 }
-                // Lost focus (clicked away) → commit
                 if (GUI.GetNameOfFocusedControl() != ctrl && Event.current.type == EventType.Repaint)
                     CommitRename(node);
             }
@@ -334,11 +326,10 @@ namespace GameInit.Editor.AutoFolders
                 { BeginRename(node); Event.current.Use(); }
             }
 
-            // Asmdef badge — sits between name and buttons, only when there's room
             if (node.GenerateAsmdef && nameW > 40)
             {
                 string badgeTxt = BuildFullName(node);
-                if (badgeTxt.Length > 22) badgeTxt = "…" + badgeTxt.Substring(badgeTxt.Length - 21);
+                if (badgeTxt.Length > 22) badgeTxt = "..." + badgeTxt.Substring(badgeTxt.Length - 21);
                 float bw = Mathf.Min(_sBadge.CalcSize(new GUIContent(badgeTxt)).x + 10, nameW - 4);
                 var   br = new Rect(cx + nameW - bw - 2, y + 4, bw, 14);
                 EditorGUI.DrawRect(br, BadgeBg);
@@ -347,33 +338,28 @@ namespace GameInit.Editor.AutoFolders
                 GUI.color = prev;
             }
 
-            // Buttons (right edge, fixed positions)
             float bx = totalW - 8;
 
-            // Delete
             bx -= 14;
             if (GUI.Button(new Rect(bx, y + 4, 14, 14),
                 EditorGUIUtility.IconContent("d_Toolbar Minus"), GUIStyle.none))
             {
                 node.Parent?.RemoveChild(node);
-                if (_selected == node)   { _selected = null; }
+                if (_selected == node)     _selected     = null;
                 if (_renamingNode == node) _renamingNode = null;
                 Repaint(); return y + k_RowH;
             }
             bx -= 18;
 
-            // Add child
             if (GUI.Button(new Rect(bx, y + 4, 14, 14),
                 EditorGUIUtility.IconContent("d_CreateAddNew"), GUIStyle.none))
             { node.IsExpanded = true; node.AddChild("New Folder"); }
             bx -= 18;
 
-            // Rename
             if (GUI.Button(new Rect(bx, y + 4, 14, 14),
                 EditorGUIUtility.IconContent("d_editicon.sml"), GUIStyle.none))
                 BeginRename(node);
 
-            // Row click → select
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0 &&
                 row.Contains(Event.current.mousePosition))
             {
@@ -412,7 +398,6 @@ namespace GameInit.Editor.AutoFolders
 
             var n = _selected;
 
-            // Toggle
             bool was = n.GenerateAsmdef;
             n.GenerateAsmdef = EditorGUI.Toggle(new Rect(x, y + 1, 16, 16), n.GenerateAsmdef);
             GUI.Label(new Rect(x + 20, y, w - 20, 16), "Generate .asmdef", _sRow);
@@ -427,40 +412,52 @@ namespace GameInit.Editor.AutoFolders
                 GUI.EndScrollView(); return;
             }
 
-            // Assembly suffix
+            // Assembly suffix (raw — prefix applied at generation time)
             GUI.Label(new Rect(x, y, w, 12), "Assembly suffix", _sLabel); y += 13;
-            n.Asmdef.AssemblyName = GUI.TextField(new Rect(x, y, w, 20), n.Asmdef.AssemblyName); y += 26;
+            n.Asmdef.AssemblyName = GUI.TextField(new Rect(x, y, w, 20), n.Asmdef.AssemblyName).Trim();
+            y += 26;
 
-            // Full name preview
+            // Full name preview (read-only)
             string full = BuildFullName(n);
             EditorGUI.DrawRect(new Rect(x, y, w, 28), Bg2);
-            GUI.Label(new Rect(x + 4, y + 2,  w - 8, 11), "Full assembly name", _sLabel);
+            GUI.Label(new Rect(x + 4, y + 2,  w - 8, 11), "Full assembly name (preview)", _sLabel);
             GUI.Label(new Rect(x + 4, y + 13, w - 8, 13), full, _sCode);
             y += 34;
 
             // Namespace example
             EditorGUI.DrawRect(new Rect(x, y, w, 28), Bg2);
             GUI.Label(new Rect(x + 4, y + 2,  w - 8, 11), "Namespace example", _sLabel);
-            GUI.Label(new Rect(x + 4, y + 13, w - 8, 13), "namespace " + full.Replace(".", "."), _sCode);
+            GUI.Label(new Rect(x + 4, y + 13, w - 8, 13), "namespace " + full, _sCode);
             y += 34;
 
             // Platform
             GUI.Label(new Rect(x, y, w, 12), "Platform", _sLabel); y += 13;
-            n.Asmdef.Platform = (AsmdefPlatform)EditorGUI.EnumPopup(new Rect(x, y, w, 20), n.Asmdef.Platform); y += 26;
+            n.Asmdef.Platform = (AsmdefPlatform)EditorGUI.EnumPopup(
+                new Rect(x, y, w, 20), n.Asmdef.Platform); y += 26;
 
             // Checkboxes
-            n.Asmdef.AutoReferenced = EditorGUI.Toggle(new Rect(x, y + 1, 16, 16), n.Asmdef.AutoReferenced);
+            n.Asmdef.AutoReferenced = EditorGUI.Toggle(
+                new Rect(x, y + 1, 16, 16), n.Asmdef.AutoReferenced);
             GUI.Label(new Rect(x + 20, y, w - 20, 16), "Auto referenced", _sLabel); y += 20;
-            n.Asmdef.AllowUnsafeCode = EditorGUI.Toggle(new Rect(x, y + 1, 16, 16), n.Asmdef.AllowUnsafeCode);
+
+            n.Asmdef.AllowUnsafeCode = EditorGUI.Toggle(
+                new Rect(x, y + 1, 16, 16), n.Asmdef.AllowUnsafeCode);
             GUI.Label(new Rect(x + 20, y, w - 20, 16), "Allow unsafe code", _sLabel); y += 28;
 
-            // References
+            // References — stored as suffixes
             EditorGUI.DrawRect(new Rect(x, y, w, 1), Sep); y += 6;
-            GUI.Label(new Rect(x, y, w, 12), "REFERENCES", _sSection); y += 16;
+            GUI.Label(new Rect(x, y, w, 12), "REFERENCES  (suffixes only, e.g. Core)", _sSection);
+            y += 16;
 
             for (int i = 0; i < n.Asmdef.References.Count; i++)
             {
-                n.Asmdef.References[i] = GUI.TextField(new Rect(x, y, w - 18, 18), n.Asmdef.References[i]);
+                EditorGUI.BeginChangeCheck();
+                string edited = GUI.TextField(
+                    new Rect(x, y, w - 18, 18), n.Asmdef.References[i]);
+                if (EditorGUI.EndChangeCheck())
+                    // Strip prefix if user accidentally pastes a full name
+                    n.Asmdef.References[i] = NormalizeSuffix(edited);
+
                 if (GUI.Button(new Rect(x + w - 16, y + 1, 14, 14),
                     EditorGUIUtility.IconContent("d_Toolbar Minus"), GUIStyle.none))
                 { n.Asmdef.References.RemoveAt(i); break; }
@@ -468,10 +465,10 @@ namespace GameInit.Editor.AutoFolders
             }
             y += 4;
             if (GUI.Button(new Rect(x, y, w, 20), "+ Add Reference"))
-            { n.Asmdef.References.Add(""); }
+                n.Asmdef.References.Add("");
             y += 28;
 
-            // Quick-add from other asmdefs in tree
+            // Quick-add from other asmdef nodes in the tree
             var others = CollectAsmdefs(_root)
                 .Where(m => m != n
                     && !string.IsNullOrWhiteSpace(m.Asmdef.AssemblyName)
@@ -484,8 +481,11 @@ namespace GameInit.Editor.AutoFolders
                 GUI.Label(new Rect(x, y, w, 12), "QUICK ADD", _sSection); y += 16;
                 foreach (var m in others)
                 {
-                    if (GUI.Button(new Rect(x, y, w, 18), m.Asmdef.AssemblyName))
-                        n.Asmdef.References.Add(m.Asmdef.AssemblyName);
+                    string suffix = m.Asmdef.AssemblyName;
+                    string label  = $"{suffix}  [{BuildFullName(m)}]";
+                    if (GUI.Button(new Rect(x, y, w, 18), label))
+                        // Always store the suffix — FolderGenerator resolves the prefix at write time
+                        n.Asmdef.References.Add(suffix);
                     y += 22;
                 }
             }
@@ -504,7 +504,7 @@ namespace GameInit.Editor.AutoFolders
 
             float bw = _confirmGen ? 210 : 174;
             float bx = r.xMax - bw - 10;
-            string lbl    = _confirmGen ? "⚠  Confirm — Write to Disk" : "  Generate Structure";
+            string lbl    = _confirmGen ? "Confirm - Write to Disk" : "  Generate Structure";
             string icoKey = _confirmGen ? "console.warnicon.sml" : "d_FolderOpened Icon";
 
             var prevBg = GUI.backgroundColor;
@@ -526,10 +526,22 @@ namespace GameInit.Editor.AutoFolders
         void DoGenerate()
         {
             if (_root == null) return;
-            var (f, a) = FolderGenerator.Generate(_root, _asmPrefix);
-            _statusMsg = $"✓  {f} folder{(f!=1?"s":"")}  ·  {a} .asmdef file{(a!=1?"s":"")} created";
-            EditorUtility.DisplayDialog("Done",
-                $"Structure generated.\n\n{f} folders\n{a} assembly definitions", "OK");
+
+            _statusMsg = "Creating folders...";
+            Repaint();
+
+            int folders = 0;
+            var folders1 = folders;
+            folders = FolderGenerator.GenerateFolders(_root, _asmPrefix, asmdefsWritten =>
+            {
+                _statusMsg = $"Done  {folders1} folder(s)  {asmdefsWritten} .asmdef(s) created";
+                // Window may have been destroyed during domain reload — guard
+                if (this) Repaint();
+            });
+
+            // Folders are known immediately; asmdef count arrives via callback
+            _statusMsg = $"Folders created: {folders}  |  Writing .asmdefs after refresh...";
+            Repaint();
         }
 
         // ── Helpers ──────────────────────────────────────────────────────
@@ -538,7 +550,8 @@ namespace GameInit.Editor.AutoFolders
             _selIdx = idx; _selCustom = custom;
             _selected = null;
             var list = custom ? _custom : _builtIn;
-            if (list == null || idx < 0 || idx >= list.Count) { _root = new FolderNode("__root__"); return; }
+            if (list == null || idx < 0 || idx >= list.Count)
+            { _root = new FolderNode("__root__"); return; }
             _root = list[idx].Root != null ? list[idx].Root.DeepClone() : new FolderNode("__root__");
         }
 
@@ -568,10 +581,21 @@ namespace GameInit.Editor.AutoFolders
             n.IsRenaming = false; _renamingNode = null;
         }
 
+        // Returns the preview full name using the current prefix
         string BuildFullName(FolderNode n)
         {
             string suffix = string.IsNullOrWhiteSpace(n.Asmdef.AssemblyName) ? n.Name : n.Asmdef.AssemblyName;
-            return string.IsNullOrWhiteSpace(_asmPrefix) ? suffix : _asmPrefix + "." + suffix;
+            return FolderGenerator.BuildFullName(suffix, _asmPrefix);
+        }
+
+        // If user pastes "Game.Core" into a suffix field, strip the prefix
+        string NormalizeSuffix(string value)
+        {
+            value = value.Trim();
+            string prefixDot = _asmPrefix.Trim() + ".";
+            if (!string.IsNullOrEmpty(_asmPrefix) && value.StartsWith(prefixDot))
+                value = value.Substring(prefixDot.Length);
+            return value;
         }
 
         int CountRows(FolderNode n)
@@ -617,7 +641,7 @@ namespace GameInit.Editor.AutoFolders
 
             _sCode = new GUIStyle(EditorStyles.label)
             {
-                fontSize = 10,
+                fontSize  = 10,
                 fontStyle = FontStyle.Bold,
                 normal    = { textColor = Txt }
             };
