@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using System;
 using System.Linq;
+using GameInit.Hierarchy;
 
 namespace GameInit.Editor.Hierarchy
 {
@@ -41,6 +42,10 @@ namespace GameInit.Editor.Hierarchy
         {
             GameObject gameObject = EditorUtility.EntityIdToObject(instanceID) as GameObject;
             if (gameObject == null || PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject) != null)
+                return;
+            
+            // Não desenhar ícone para Headers
+            if (gameObject.GetComponent<HierarchyHeader>() != null)
                 return;
             
             Component targetComponent = GetPriorityComponent(gameObject);
