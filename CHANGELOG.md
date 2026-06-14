@@ -1,3 +1,10 @@
+## [1.4.6](https://github.com/Natteens/GameInit/compare/v1.4.5...v1.4.6) (2026-06-14)
+
+
+### Bug Fixes
+
+* Debounce scene changes and rebuild Injector ([5afb34a](https://github.com/Natteens/GameInit/commit/5afb34a3488b510a0ecf097091016ff29ae93e2b))
+
 ## [1.4.5](https://github.com/Natteens/com.natteens.gameinit/compare/v1.4.4...v1.4.5) (2026-06-14)
 
 
