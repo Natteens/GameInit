@@ -1,3 +1,10 @@
+## [1.4.5](https://github.com/Natteens/com.natteens.gameinit/compare/v1.4.4...v1.4.5) (2026-06-14)
+
+
+### Bug Fixes
+
+* Add dependency injection system, metadata & editor ([56b5f6b](https://github.com/Natteens/com.natteens.gameinit/commit/56b5f6b52e129a7da7d750e12de7bd49a8b54c89))
+
 ## [1.4.4](https://github.com/Natteens/com.natteens.gameinit/compare/v1.4.3...v1.4.4) (2026-03-21)
 
 
