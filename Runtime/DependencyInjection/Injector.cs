@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -24,6 +25,9 @@ namespace GameInit.DependencyInjection {
         [SerializeField] InjectorLogLevel logLevel = InjectorLogLevel.Warnings;
 
         readonly Dictionary<Type, DependencyEntry> registry = new();
+        bool rebuildQueued;
+        Coroutine rebuildCoroutine;
+        int sceneChangeVersion;
 
         public IReadOnlyDictionary<Type, DependencyEntry> Registry => registry;
 
@@ -45,13 +49,22 @@ namespace GameInit.DependencyInjection {
         void OnDisable() {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
             SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+            CancelQueuedRebuild();
         }
 
         public void Rebuild() {
+            CancelQueuedRebuild();
+            RebuildAllLoadedObjects();
+        }
+
+        void RebuildAllLoadedObjects() {
             registry.Clear();
             var monoBehaviours = FindMonoBehaviours();
+            LogVerbose($"[Injector] Rebuild started. Loaded scenes: {CountLoadedScenes()}.");
             RegisterProviders(monoBehaviours);
-            InjectAll(monoBehaviours);
+            int injected = InjectAll(monoBehaviours, true);
+            LogVerbose($"[Injector] Providers registered: {registry.Count}.");
+            LogVerbose($"[Injector] Injectables injected: {injected}.");
         }
 
         public void RebuildAndInjectAllLoadedObjects() {
@@ -63,29 +76,47 @@ namespace GameInit.DependencyInjection {
                 return;
             }
 
-            InjectScene(scene);
+            QueueGlobalRebuild($"[Injector] Rebuild scheduled after scene load: {scene.name}.");
         }
 
         void HandleSceneUnloaded(Scene scene) {
-            int removed = 0;
-            var toRemove = new List<Type>();
-            foreach (var pair in registry) {
-                var entry = pair.Value;
-                bool ownerGone = entry.Owner == null;
-                bool sceneMatch = entry.Scene.IsValid() && entry.Scene.handle == scene.handle;
-                if (ownerGone || sceneMatch) {
-                    toRemove.Add(pair.Key);
+            QueueGlobalRebuild($"[Injector] Rebuild scheduled after scene unload: {scene.name}.");
+        }
+
+        void QueueGlobalRebuild(string logMessage) {
+            sceneChangeVersion++;
+            LogVerbose(logMessage);
+
+            if (rebuildQueued) {
+                return;
+            }
+
+            rebuildQueued = true;
+            rebuildCoroutine = StartCoroutine(RebuildAfterSceneChanges(sceneChangeVersion));
+        }
+
+        IEnumerator RebuildAfterSceneChanges(int queuedVersion) {
+            while (true) {
+                yield return null;
+                if (queuedVersion == sceneChangeVersion) {
+                    break;
                 }
+
+                queuedVersion = sceneChangeVersion;
             }
 
-            for (int i = 0; i < toRemove.Count; i++) {
-                registry.Remove(toRemove[i]);
-                removed++;
+            rebuildQueued = false;
+            rebuildCoroutine = null;
+            RebuildAllLoadedObjects();
+        }
+
+        void CancelQueuedRebuild() {
+            if (rebuildCoroutine != null) {
+                StopCoroutine(rebuildCoroutine);
             }
 
-            if (removed > 0) {
-                LogVerbose($"[Injector] Scene '{scene.name}' unloaded, removed {removed} provider(s).");
-            }
+            rebuildQueued = false;
+            rebuildCoroutine = null;
         }
 
         public void InjectScene(Scene scene) {
@@ -101,7 +132,7 @@ namespace GameInit.DependencyInjection {
 
             var array = collected.ToArray();
             RegisterProviders(array);
-            InjectAll(array);
+            InjectAll(array, false);
             LogVerbose($"[Injector] Injected scene '{scene.name}' ({array.Length} components).");
         }
 
@@ -114,7 +145,7 @@ namespace GameInit.DependencyInjection {
                 ? root.GetComponentsInChildren<MonoBehaviour>(true)
                 : root.GetComponents<MonoBehaviour>();
             RegisterProviders(array);
-            InjectAll(array);
+            InjectAll(array, false);
         }
 
         public void InjectObject(object target) {
@@ -326,7 +357,8 @@ namespace GameInit.DependencyInjection {
             throw new InvalidOperationException($"[Injector] No provider registered for '{type.Name}'.");
         }
 
-        void InjectAll(MonoBehaviour[] monoBehaviours) {
+        int InjectAll(MonoBehaviour[] monoBehaviours, bool overwriteExisting) {
+            int injected = 0;
             for (int i = 0; i < monoBehaviours.Length; i++) {
                 var mono = monoBehaviours[i];
                 if (mono == null) {
@@ -338,30 +370,39 @@ namespace GameInit.DependencyInjection {
                     continue;
                 }
 
-                InjectWithMetadata(mono, metadata);
+                InjectWithMetadata(mono, metadata, overwriteExisting);
+                injected++;
             }
+
+            return injected;
         }
 
         void Inject(object instance) {
             var metadata = InjectionMetadata.Get(instance.GetType());
-            InjectWithMetadata(instance, metadata);
+            InjectWithMetadata(instance, metadata, false);
         }
 
-        void InjectWithMetadata(object instance, InjectionMetadata metadata) {
+        void InjectWithMetadata(object instance, InjectionMetadata metadata, bool overwriteExisting) {
             var type = instance.GetType();
 
             var fields = metadata.InjectableFields;
             for (int i = 0; i < fields.Length; i++) {
                 var field = fields[i].Field;
-                var current = field.GetValue(instance);
-                if (current != null && !(current is Object cu && cu == null)) {
-                    LogVerbose($"[Injector] Field '{field.Name}' on '{type.Name}' already set, skipped.");
-                    continue;
+                if (!overwriteExisting) {
+                    var current = field.GetValue(instance);
+                    if (current != null && !(current is Object cu && cu == null)) {
+                        LogVerbose($"[Injector] Field '{field.Name}' on '{type.Name}' already set, skipped.");
+                        continue;
+                    }
                 }
 
                 if (TryResolve(field.FieldType, out var resolved)) {
                     field.SetValue(instance, resolved);
                 } else {
+                    if (overwriteExisting) {
+                        field.SetValue(instance, DefaultValue(field.FieldType));
+                    }
+
                     HandleMissing(field.FieldType, type, field.Name, fields[i].Optional);
                 }
             }
@@ -372,6 +413,10 @@ namespace GameInit.DependencyInjection {
                 if (TryResolve(property.PropertyType, out var resolved)) {
                     property.SetValue(instance, resolved);
                 } else {
+                    if (overwriteExisting) {
+                        property.SetValue(instance, DefaultValue(property.PropertyType));
+                    }
+
                     HandleMissing(property.PropertyType, type, property.Name, properties[i].Optional);
                 }
             }
@@ -573,7 +618,22 @@ namespace GameInit.DependencyInjection {
         }
 
         static MonoBehaviour[] FindMonoBehaviours() {
-            return FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.InstanceID);
+            return FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
+        }
+
+        static int CountLoadedScenes() {
+            int loadedScenes = 0;
+            for (int i = 0; i < SceneManager.sceneCount; i++) {
+                if (SceneManager.GetSceneAt(i).isLoaded) {
+                    loadedScenes++;
+                }
+            }
+
+            return loadedScenes;
+        }
+
+        static object DefaultValue(Type type) {
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
         }
 
         static string NameOf(Object obj) {
