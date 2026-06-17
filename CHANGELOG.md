@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Natteens/GameInit/compare/v1.4.6...v1.5.0) (2026-06-17)
+
+
+### Features
+
+* UNITY 6.5 UPGRADE - Refactor GameEvents & update hierarchy APIs ([94fbb6a](https://github.com/Natteens/GameInit/commit/94fbb6a5472387c95f246219e5ce42a610aa2eba))
+
 ## [1.4.6](https://github.com/Natteens/GameInit/compare/v1.4.5...v1.4.6) (2026-06-14)
 
 
