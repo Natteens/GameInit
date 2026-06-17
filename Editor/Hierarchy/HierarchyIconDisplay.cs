@@ -15,7 +15,7 @@ namespace GameInit.Editor.Hierarchy
         
         static HierarchyIconDisplay()
         {
-            EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyItemGUI;
+            EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyItemGUI;
             EditorApplication.update += UpdateHierarchyFocus;
         }
         
@@ -38,7 +38,7 @@ namespace GameInit.Editor.Hierarchy
             _isHierarchyFocused = _hierarchyWindow != null && EditorWindow.focusedWindow == _hierarchyWindow;
         }
         
-        private static void OnHierarchyItemGUI(int instanceID, Rect selectionRect)
+        private static void OnHierarchyItemGUI(EntityId instanceID, Rect selectionRect)
         {
             GameObject gameObject = EditorUtility.EntityIdToObject(instanceID) as GameObject;
             if (gameObject == null || PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject) != null)
@@ -102,7 +102,7 @@ namespace GameInit.Editor.Hierarchy
             return content;
         }
         
-        private static void DrawIcon(int instanceID, Rect selectionRect, GUIContent iconContent)
+        private static void DrawIcon(EntityId instanceID, Rect selectionRect, GUIContent iconContent)
         {
             bool isSelected = Selection.entityIds.Contains(instanceID);
             bool isHovered = selectionRect.Contains(Event.current.mousePosition);

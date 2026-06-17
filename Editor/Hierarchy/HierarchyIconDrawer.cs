@@ -14,10 +14,10 @@ namespace GameInit.Editor. Hierarchy
         static readonly Dictionary<Type, FieldInfo[]> cachedFieldInfo = new();
 
         static HierarchyIconDrawer() {
-            EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyWindowItemOnGUI;
+            EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyWindowItemOnGUI;
         }
 
-        static void OnHierarchyWindowItemOnGUI(int instanceID, Rect selectionRect) {
+        static void OnHierarchyWindowItemOnGUI(EntityId instanceID, Rect selectionRect) {
             if (EditorUtility.EntityIdToObject(instanceID) is not GameObject gameObject) return;
 
             foreach (var component in gameObject.GetComponents<Component>()) {
@@ -67,7 +67,7 @@ namespace GameInit.Editor. Hierarchy
                 return string.IsNullOrEmpty(stringValue);
             }
 
-            if (fieldValue is System.Collections. ICollection collection) {
+            if (fieldValue is System.Collections.ICollection collection) {
                 if (collection.Count == 0) return true;
                 
                 foreach (var item in collection) {

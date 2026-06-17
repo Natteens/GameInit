@@ -524,9 +524,10 @@ namespace GameInit.DependencyInjection {
                     }
 
                     var parameters = methods[m].Parameters;
-                    for (int p = 0; p < parameters.Length; p++) {
-                        if (!provided.Contains(parameters[p])) {
-                            errors.Add($"{type.Name}.{methods[m].Method.Name} is missing '{parameters[p].Name}' on '{mono.gameObject.name}'.");
+                    foreach (var t in parameters)
+                    {
+                        if (!provided.Contains(t)) {
+                            errors.Add($"{type.Name}.{methods[m].Method.Name} is missing '{t.Name}' on '{mono.gameObject.name}'.");
                         }
                     }
                 }
@@ -601,8 +602,8 @@ namespace GameInit.DependencyInjection {
 
         public void ClearDependencies() {
             var monoBehaviours = FindMonoBehaviours();
-            for (int i = 0; i < monoBehaviours.Length; i++) {
-                var mono = monoBehaviours[i];
+            foreach (var mono in monoBehaviours)
+            {
                 if (mono == null) {
                     continue;
                 }
@@ -618,7 +619,7 @@ namespace GameInit.DependencyInjection {
         }
 
         static MonoBehaviour[] FindMonoBehaviours() {
-            return FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
+            return FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include);
         }
 
         static int CountLoadedScenes() {
