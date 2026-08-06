@@ -2,56 +2,56 @@
 
 # GameInit
 
-**A shelf of small Unity systems for the work every new project repeats.**
+**Reusable Unity utilities for events, timers, scene injection and common project work.**
 
-Events, timers, scene injection and practical helpers packaged as independent tools rather than one
-all-or-nothing framework.
+GameInit groups a handful of systems that tend to come up in most Unity projects. Each module can be
+used on its own, so adding a timer or an event channel does not force a larger project architecture.
 
-[![Release](https://img.shields.io/github/v/release/Natteens/GameInit?sort=semver&label=release&style=flat-square)](https://github.com/Natteens/GameInit/releases)
+[![Version](https://img.shields.io/github/v/tag/Natteens/GameInit?sort=semver&label=version&style=flat-square)](https://github.com/Natteens/GameInit/tags)
 [![Package](https://img.shields.io/badge/package-com.natteens.gameinit-555555?style=flat-square)](./package.json)
-[![License](https://img.shields.io/github/license/Natteens/GameInit?style=flat-square)](./LICENSE.md)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](./LICENSE.md)
 
-[Overview](#a-toolbox-not-a-framework) · [Modules](#whats-inside) · [Installation](#installation) · [Documentation](#documentation)
+[Overview](#what-gameinit-is) · [Modules](#whats-inside) · [Installation](#installation) · [Documentation](#documentation)
 
 </div>
 
 ---
 
-## A toolbox, not a framework
+## What GameInit Is
 
-Unity projects often begin with the same quiet infrastructure: an event needs to cross scene
-boundaries, a timer needs to survive without a coroutine, or a component needs a dependency that
-should not be found through another global lookup.
+Most Unity projects eventually need some of the same plumbing: an event that can cross scene
+boundaries, a timer that should not depend on an arbitrary coroutine owner, or a simple way to pass
+a dependency to a component in the current scene.
 
-GameInit collects those pieces in one package, but keeps them separate. There is no mandatory
-bootstrap and no project architecture to adopt. Bring in the module that solves the current problem
-and leave the rest alone.
+GameInit keeps those jobs together without turning them into one large framework. There is no
+required bootstrap and no architecture you have to build the rest of the game around. Use the
+modules you need and leave the others alone.
 
 ## What's Inside
 
 <table>
 <tr>
-<td width="50%"><strong>Typed event channels</strong><br><sub>ScriptableObject channels for explicit communication between otherwise unrelated systems.</sub></td>
-<td width="50%"><strong>PlayerLoop timers</strong><br><sub>Schedule time-based work without attaching coroutine ownership to an arbitrary component.</sub></td>
+<td width="50%"><strong>Typed event channels</strong><br><sub>ScriptableObject channels for communication between systems that should not depend directly on each other.</sub></td>
+<td width="50%"><strong>PlayerLoop timers</strong><br><sub>Schedule time-based work without giving an unrelated component ownership of a coroutine.</sub></td>
 </tr>
 <tr>
-<td width="50%"><strong>Scene injection</strong><br><sub>Provide lightweight dependencies inside a scene without turning the package into a container framework.</sub></td>
-<td width="50%"><strong>Everyday utilities</strong><br><sub>Focused helpers for common Unity, hierarchy, animation and lifecycle tasks.</sub></td>
+<td width="50%"><strong>Scene injection</strong><br><sub>Pass lightweight dependencies inside a scene without introducing a full dependency-injection container.</sub></td>
+<td width="50%"><strong>Everyday utilities</strong><br><sub>Small helpers for common Unity, hierarchy, animation and lifecycle tasks.</sub></td>
 </tr>
 </table>
 
-The event API was simplified in **v1.5**. Older examples that use targeted events or
-`GameEventChannel` describe a previous version and should not be carried into new code.
+The event API changed in **v1.5**. Examples that use targeted events or `GameEventChannel` belong to
+an older version and should not be used for new code.
 
 ## Installation
 
-In the Package Manager, choose **Add package from git URL** and paste:
+In Package Manager, choose **Add package from git URL** and paste:
 
 ```text
 https://github.com/Natteens/GameInit.git
 ```
 
-Or declare it in `Packages/manifest.json`:
+Or add it to `Packages/manifest.json`:
 
 ```json
 {
@@ -61,24 +61,23 @@ Or declare it in `Packages/manifest.json`:
 }
 ```
 
-Pin a release tag when the project needs reproducible package resolution.
+For a project that should stay on a known version, append a release tag to the Git URL.
 
 ## Getting Started
 
-GameInit does not ask for a global setup step. Start from the problem you need to solve, then follow
-the module guide for its namespace, assets and lifecycle.
+There is no global setup step. Start with the module you need, then follow its guide for the
+relevant namespace, assets and lifecycle.
 
-A useful rule is to keep these systems at the infrastructure boundary: event channels communicate,
-timers schedule and injection supplies dependencies. Gameplay rules should remain in gameplay code.
+As a rule, keep these modules focused on infrastructure: event channels communicate, timers
+schedule work and scene injection supplies dependencies. Gameplay rules stay in gameplay code.
 
 ## Documentation
 
-Module setup and the current API are documented in
-[Documentation](./Documentation~/index.md). That reference covers the details intentionally kept out
-of this presentation page, including version notes and module-specific usage.
+Setup, API notes and module-specific examples live in
+[Documentation](./Documentation~/index.md).
 
-See the [changelog](./CHANGELOG.md) before upgrading an existing project, particularly across the
-v1.5 event-channel changes.
+Check the [changelog](./CHANGELOG.md) before upgrading an existing project, especially when moving
+to v1.5 or newer because of the event-channel changes.
 
 ## License
 
