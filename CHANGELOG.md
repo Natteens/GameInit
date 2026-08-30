@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/Natteens/GameInit/compare/v1.5.0...v1.5.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* prevent frequency timers ticking at zero timescale ([38f863a](https://github.com/Natteens/GameInit/commit/38f863a5ec0aa69d6ee751692d11d2463778f497))
+
 # [1.5.0](https://github.com/Natteens/GameInit/compare/v1.4.6...v1.5.0) (2026-06-17)
 
 
