@@ -17,13 +17,16 @@ namespace GameInit.Timers {
         }
 
         public override void Tick() {
-            if (IsRunning && CurrentTime >= timeThreshold) {
+            float deltaTime = Time.deltaTime;
+            if (!IsRunning || Time.timeScale <= 0f || deltaTime <= 0f) return;
+
+            if (CurrentTime >= timeThreshold) {
                 CurrentTime -= timeThreshold;
                 OnTick.Invoke();
             }
 
-            if (IsRunning && CurrentTime < timeThreshold) {
-                CurrentTime += Time.deltaTime;
+            if (CurrentTime < timeThreshold) {
+                CurrentTime += deltaTime;
             }
         }
 
