@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/Natteens/GameInit/compare/v1.5.1...v1.5.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* reset static state across play sessions ([4ba2479](https://github.com/Natteens/GameInit/commit/4ba2479b8b503128ba6badf7186d32aff0187b25))
+
 ## [1.5.1](https://github.com/Natteens/GameInit/compare/v1.5.0...v1.5.1) (2026-08-30)
 
 
