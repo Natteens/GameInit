@@ -14,11 +14,20 @@ namespace GameInit.Editor. Hierarchy
         static readonly Dictionary<Type, FieldInfo[]> cachedFieldInfo = new();
 
         static HierarchyIconDrawer() {
+#if UNITY_6000_5_OR_NEWER
             EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyWindowItemOnGUI;
+#else
+            EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyWindowItemOnGUI;
+#endif
         }
 
+#if UNITY_6000_5_OR_NEWER
         static void OnHierarchyWindowItemOnGUI(EntityId instanceID, Rect selectionRect) {
             if (EditorUtility.EntityIdToObject(instanceID) is not GameObject gameObject) return;
+#else
+        static void OnHierarchyWindowItemOnGUI(int instanceID, Rect selectionRect) {
+            if (EditorUtility.InstanceIDToObject(instanceID) is not GameObject gameObject) return;
+#endif
 
             foreach (var component in gameObject.GetComponents<Component>()) {
                 if (component == null) continue;

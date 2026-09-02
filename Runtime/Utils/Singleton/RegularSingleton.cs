@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameInit.Utils {
@@ -6,6 +8,12 @@ namespace GameInit.Utils {
     /// </summary>
     public sealed class RegulatorSingleton<T> : MonoBehaviour where T : Component {
         private static T instance;
+
+        static RegulatorSingleton() {
+            SingletonResetRegistry.Register(ResetStatics);
+        }
+
+        static void ResetStatics() => instance = null;
 
         public static bool HasInstance => instance != null;
 
@@ -38,7 +46,11 @@ namespace GameInit.Utils {
             InitializationTime = Time.time;
             DontDestroyOnLoad(gameObject);
 
+#if UNITY_6000_5_OR_NEWER
             T[] oldInstances = FindObjectsByType<T>();
+#else
+            T[] oldInstances = FindObjectsByType<T>(FindObjectsSortMode.None);
+#endif
             foreach (T old in oldInstances) {
                 if (old.GetComponent<RegulatorSingleton<T>>().InitializationTime < InitializationTime) {
                     Destroy(old.gameObject);
@@ -47,6 +59,21 @@ namespace GameInit.Utils {
 
             if (instance == null) {
                 instance = this as T;
+            }
+        }
+    }
+
+    internal static class SingletonResetRegistry {
+        static readonly HashSet<Action> Resetters = new();
+
+        internal static void Register(Action resetter) {
+            Resetters.Add(resetter);
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() {
+            foreach (Action resetter in Resetters) {
+                resetter();
             }
         }
     }

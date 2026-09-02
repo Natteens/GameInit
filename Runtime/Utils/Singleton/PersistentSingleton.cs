@@ -6,6 +6,12 @@ namespace GameInit.Utils {
 
         protected static T instance;
 
+        static PersistentSingleton() {
+            SingletonResetRegistry.Register(ResetStatics);
+        }
+
+        static void ResetStatics() => instance = null;
+
         public static bool HasInstance => instance != null;
         public static T TryGetInstance() => HasInstance ? instance : null;
 

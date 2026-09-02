@@ -15,7 +15,11 @@ namespace GameInit.Editor.Hierarchy
         
         static HierarchyIconDisplay()
         {
+#if UNITY_6000_5_OR_NEWER
             EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyItemGUI;
+#else
+            EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyItemGUI;
+#endif
             EditorApplication.update += UpdateHierarchyFocus;
         }
         
@@ -38,9 +42,15 @@ namespace GameInit.Editor.Hierarchy
             _isHierarchyFocused = _hierarchyWindow != null && EditorWindow.focusedWindow == _hierarchyWindow;
         }
         
+#if UNITY_6000_5_OR_NEWER
         private static void OnHierarchyItemGUI(EntityId instanceID, Rect selectionRect)
         {
             GameObject gameObject = EditorUtility.EntityIdToObject(instanceID) as GameObject;
+#else
+        private static void OnHierarchyItemGUI(int instanceID, Rect selectionRect)
+        {
+            GameObject gameObject = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
+#endif
             if (gameObject == null || PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject) != null)
                 return;
             
@@ -102,9 +112,15 @@ namespace GameInit.Editor.Hierarchy
             return content;
         }
         
+#if UNITY_6000_5_OR_NEWER
         private static void DrawIcon(EntityId instanceID, Rect selectionRect, GUIContent iconContent)
         {
             bool isSelected = Selection.entityIds.Contains(instanceID);
+#else
+        private static void DrawIcon(int instanceID, Rect selectionRect, GUIContent iconContent)
+        {
+            bool isSelected = Selection.instanceIDs.Contains(instanceID);
+#endif
             bool isHovered = selectionRect.Contains(Event.current.mousePosition);
             
             Color backgroundColor = GetBackgroundColor(isSelected, isHovered);

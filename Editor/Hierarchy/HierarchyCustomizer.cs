@@ -13,15 +13,25 @@ namespace GameInit.Editor.Hierarchy
     {
         static HierarchyCustomizer()
         {
+#if UNITY_6000_5_OR_NEWER
             EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyItemGUI;
+#else
+            EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyItemGUI;
+#endif
         }
 
         /// <summary>
         /// Renderiza objetos customizados na hierarchy quando detectado componente apropriado
         /// </summary>
+#if UNITY_6000_5_OR_NEWER
         private static void OnHierarchyItemGUI(EntityId instanceID, Rect rect)
         {
             var gameObject = EditorUtility.EntityIdToObject(instanceID) as GameObject;
+#else
+        private static void OnHierarchyItemGUI(int instanceID, Rect rect)
+        {
+            var gameObject = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
+#endif
             
             if (!IsValidGameObject(gameObject)) return;
             

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace GameInit.DependencyInjection {
     public sealed class InjectionMetadata {
@@ -45,6 +46,11 @@ namespace GameInit.DependencyInjection {
         const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         static readonly Dictionary<Type, InjectionMetadata> Cache = new();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() {
+            ClearCache();
+        }
 
         public static InjectionMetadata Get(Type type) {
             if (Cache.TryGetValue(type, out var cached)) {

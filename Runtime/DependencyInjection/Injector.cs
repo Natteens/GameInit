@@ -619,7 +619,11 @@ namespace GameInit.DependencyInjection {
         }
 
         static MonoBehaviour[] FindMonoBehaviours() {
+#if UNITY_6000_5_OR_NEWER
             return FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include);
+#else
+            return FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#endif
         }
 
         static int CountLoadedScenes() {
